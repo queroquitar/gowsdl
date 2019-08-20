@@ -355,7 +355,9 @@ func (s *Client) call(ctx context.Context, soapAction string, request, response 
 	if mtomBoundary != "" {
 		dec = newMtomDecoder(res.Body, mtomBoundary)
 	} else {
-		dec = xml.NewDecoder(res.Body)
+		xdec := xml.NewDecoder(res.Body)
+		xdec.Strict = false
+		dec = xdec
 	}
 
 	if err := dec.Decode(respEnvelope); err != nil {

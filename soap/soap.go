@@ -345,20 +345,19 @@ func (s *Client) call(ctx context.Context, soapAction string, request, response 
 
 	respEnvelope := new(SOAPEnvelope)
 	respEnvelope.Body = SOAPBody{Content: response}
+	/*
+		mtomBoundary, err := getMtomHeader(res.Header.Get("Content-Type"))
+		if err != nil {
+			return err
+		}
 
-	mtomBoundary, err := getMtomHeader(res.Header.Get("Content-Type"))
-	if err != nil {
-		return err
-	}
-
-	var dec SOAPDecoder
-	if mtomBoundary != "" {
-		dec = newMtomDecoder(res.Body, mtomBoundary)
-	} else {
-		xdec := xml.NewDecoder(res.Body)
-		xdec.Strict = false
-		dec = xdec
-	}
+		var dec SOAPDecoder
+		if mtomBoundary != "" {
+			dec = newMtomDecoder(res.Body, mtomBoundary)
+		} else {*/
+	dec := xml.NewDecoder(res.Body)
+	dec.Strict = false
+	//	}
 
 	if err := dec.Decode(respEnvelope); err != nil {
 		return err

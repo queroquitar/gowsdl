@@ -6,6 +6,8 @@ import (
 	"crypto/tls"
 	"encoding/xml"
 	"fmt"
+	"io/ioutil"
+	"log"
 	"net"
 	"net/http"
 	"time"
@@ -286,11 +288,7 @@ func (s *Client) call(ctx context.Context, soapAction string, request, response 
 	envelope.Body.Content = request
 	buffer := new(bytes.Buffer)
 	var encoder SOAPEncoder
-	if s.opts.mtom {
-		encoder = newMtomEncoder(buffer)
-	} else {
-		encoder = xml.NewEncoder(buffer)
-	}
+	encoder = xml.NewEncoder(buffer)
 
 	if err := encoder.Encode(envelope); err != nil {
 		return err
@@ -299,6 +297,11 @@ func (s *Client) call(ctx context.Context, soapAction string, request, response 
 	if err := encoder.Flush(); err != nil {
 		return err
 	}
+
+	log.Println("*************************************************************************")
+	log.Println("WSDL Request")
+	log.Println(string(buffer.String()))
+	log.Println("*************************************************************************")
 
 	req, err := http.NewRequest("POST", s.url, buffer)
 	if err != nil {
@@ -343,21 +346,16 @@ func (s *Client) call(ctx context.Context, soapAction string, request, response 
 	}
 	defer res.Body.Close()
 
+	log.Println("*************************************************************************")
+	buf, _ := ioutil.ReadAll(res.Body)
+	log.Println("WSDL Response")
+	log.Println(string(buf))
+	log.Println("*************************************************************************")
+
 	respEnvelope := new(SOAPEnvelope)
 	respEnvelope.Body = SOAPBody{Content: response}
-	/*
-		mtomBoundary, err := getMtomHeader(res.Header.Get("Content-Type"))
-		if err != nil {
-			return err
-		}
-
-		var dec SOAPDecoder
-		if mtomBoundary != "" {
-			dec = newMtomDecoder(res.Body, mtomBoundary)
-		} else {*/
 	dec := xml.NewDecoder(res.Body)
 	dec.Strict = false
-	//	}
 
 	if err := dec.Decode(respEnvelope); err != nil {
 		return err

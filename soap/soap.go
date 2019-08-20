@@ -348,6 +348,7 @@ func (s *Client) call(ctx context.Context, soapAction string, request, response 
 
 	log.Println("*************************************************************************")
 	buf, _ := ioutil.ReadAll(res.Body)
+	res.Body = ioutil.NopCloser(bytes.NewBuffer(buf))
 	log.Println("WSDL Response")
 	log.Println(string(buf))
 	log.Println("*************************************************************************")

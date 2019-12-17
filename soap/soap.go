@@ -6,11 +6,11 @@ import (
 	"crypto/tls"
 	"encoding/xml"
 	"fmt"
-	"io/ioutil"
-	"log"
 	"net"
 	"net/http"
 	"time"
+
+	"github.com/queroquitar/integrator_utils/pkg/qqlogger"
 )
 
 type SOAPEncoder interface {
@@ -298,11 +298,6 @@ func (s *Client) call(ctx context.Context, soapAction string, request, response 
 		return err
 	}
 
-	log.Println("*************************************************************************")
-	log.Println("WSDL Request")
-	log.Println(string(buffer.String()))
-	log.Println("*************************************************************************")
-
 	req, err := http.NewRequest("POST", s.url, buffer)
 	if err != nil {
 		return err
@@ -337,7 +332,7 @@ func (s *Client) call(ctx context.Context, soapAction string, request, response 
 			},
 			TLSHandshakeTimeout: s.opts.tlshshaketimeout,
 		}
-		client = &http.Client{Timeout: s.opts.contimeout, Transport: tr}
+		client = &http.Client{Timeout: s.opts.contimeout, Transport: qqlogger.WrapTransport(tr)}
 	}
 
 	res, err := client.Do(req)
@@ -345,13 +340,6 @@ func (s *Client) call(ctx context.Context, soapAction string, request, response 
 		return err
 	}
 	defer res.Body.Close()
-
-	log.Println("*************************************************************************")
-	buf, _ := ioutil.ReadAll(res.Body)
-	res.Body = ioutil.NopCloser(bytes.NewBuffer(buf))
-	log.Println("WSDL Response")
-	log.Println(string(buf))
-	log.Println("*************************************************************************")
 
 	respEnvelope := new(SOAPEnvelope)
 	respEnvelope.Body = SOAPBody{Content: response}

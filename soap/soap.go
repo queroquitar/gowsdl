@@ -315,7 +315,6 @@ func (s *Client) call(ctx context.Context, soapAction string, request, response 
 	}
 	req.Header.Add("SOAPAction", soapAction)
 	req.Header.Set("User-Agent", "gowsdl/0.1")
-	req.Header.Set("Connection", "close")
 	if s.opts.httpHeaders != nil {
 		for k, v := range s.opts.httpHeaders {
 			req.Header.Set(k, v)
@@ -332,6 +331,7 @@ func (s *Client) call(ctx context.Context, soapAction string, request, response 
 				return d.DialContext(ctx, network, addr)
 			},
 			TLSHandshakeTimeout: s.opts.tlshshaketimeout,
+			DisableKeepAlives:   true,
 		}
 		client = &http.Client{Timeout: s.opts.contimeout, Transport: qqlogger.WrapTransport(tr)}
 	}

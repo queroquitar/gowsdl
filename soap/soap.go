@@ -315,6 +315,7 @@ func (s *Client) call(ctx context.Context, soapAction string, request, response 
 	}
 	req.Header.Add("SOAPAction", soapAction)
 	req.Header.Set("User-Agent", "gowsdl/0.1")
+	req.Header.Set("Connection", "close")
 	if s.opts.httpHeaders != nil {
 		for k, v := range s.opts.httpHeaders {
 			req.Header.Set(k, v)

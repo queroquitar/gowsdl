@@ -331,7 +331,9 @@ func (s *Client) call(ctx context.Context, soapAction string, request, response 
 				return d.DialContext(ctx, network, addr)
 			},
 			TLSHandshakeTimeout: s.opts.tlshshaketimeout,
-			DisableKeepAlives:   true,
+			IdleConnTimeout:     5 * time.Second,
+			DisableKeepAlives:   false,
+			MaxConnsPerHost:     100,
 		}
 		client = &http.Client{Timeout: s.opts.contimeout, Transport: qqlogger.WrapTransport(tr)}
 	}

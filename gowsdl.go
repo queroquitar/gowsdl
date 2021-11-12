@@ -256,16 +256,18 @@ func (g *GoWSDL) resolveXSDExternals(schema *XSDSchema, loc *Location) error {
 
 func (g *GoWSDL) genTypes() ([]byte, error) {
 	funcMap := template.FuncMap{
-		"toGoType":              toGoType,
-		"stripns":               stripns,
-		"replaceReservedWords":  replaceReservedWords,
-		"makePublic":            g.makePublicFn,
-		"makeFieldPublic":       makePublic,
-		"comment":               comment,
-		"removeNS":              removeNS,
-		"goString":              goString,
-		"findNameByType":        g.findNameByType,
-		"removePointerFromType": removePointerFromType,
+		"toGoType":                 toGoType,
+		"stripns":                  stripns,
+		"replaceReservedWords":     replaceReservedWords,
+		"replaceAttrReservedWords": replaceAttrReservedWords,
+		"normalize":                normalize,
+		"makePublic":               g.makePublicFn,
+		"makeFieldPublic":          makePublic,
+		"comment":                  comment,
+		"removeNS":                 removeNS,
+		"goString":                 goString,
+		"findNameByType":           g.findNameByType,
+		"removePointerFromType":    removePointerFromType,
 	}
 
 	data := new(bytes.Buffer)
@@ -283,6 +285,7 @@ func (g *GoWSDL) genOperations() ([]byte, error) {
 		"toGoType":             toGoType,
 		"stripns":              stripns,
 		"replaceReservedWords": replaceReservedWords,
+		"normalize":            normalize,
 		"makePublic":           g.makePublicFn,
 		"makePrivate":          makePrivate,
 		"findType":             g.findType,
@@ -305,6 +308,7 @@ func (g *GoWSDL) genHeader() ([]byte, error) {
 		"toGoType":             toGoType,
 		"stripns":              stripns,
 		"replaceReservedWords": replaceReservedWords,
+		"normalize":            normalize,
 		"makePublic":           g.makePublicFn,
 		"findType":             g.findType,
 		"comment":              comment,
@@ -348,6 +352,35 @@ var reservedWords = map[string]string{
 	"var":         "var_",
 }
 
+var reservedWordsInAttr = map[string]string{
+	"break":       "break_",
+	"default":     "default_",
+	"func":        "func_",
+	"interface":   "interface_",
+	"select":      "select_",
+	"case":        "case_",
+	"defer":       "defer_",
+	"go":          "go_",
+	"map":         "map_",
+	"struct":      "struct_",
+	"chan":        "chan_",
+	"else":        "else_",
+	"goto":        "goto_",
+	"package":     "package_",
+	"switch":      "switch_",
+	"const":       "const_",
+	"fallthrough": "fallthrough_",
+	"if":          "if_",
+	"range":       "range_",
+	"type":        "type_",
+	"continue":    "continue_",
+	"for":         "for_",
+	"import":      "import_",
+	"return":      "return_",
+	"var":         "var_",
+	"string":      "astring",
+}
+
 // Replaces Go reserved keywords to avoid compilation issues
 func replaceReservedWords(identifier string) string {
 	value := reservedWords[identifier]
@@ -357,9 +390,21 @@ func replaceReservedWords(identifier string) string {
 	return normalize(identifier)
 }
 
+// Replaces Go reserved keywords to avoid compilation issues
+func replaceAttrReservedWords(identifier string) string {
+	value := reservedWordsInAttr[identifier]
+	if value != "" {
+		return value
+	}
+	return normalize(identifier)
+}
+
 // Normalizes value to be used as a valid Go identifier, avoiding compilation issues
 func normalize(value string) string {
 	mapping := func(r rune) rune {
+		if r == '.' {
+			return '_'
+		}
 		if unicode.IsLetter(r) || unicode.IsDigit(r) || r == '_' {
 			return r
 		}
@@ -385,16 +430,18 @@ var xsd2GoTypes = map[string]string{
 	"byte":          "int8",
 	"long":          "int64",
 	"boolean":       "bool",
-	"datetime":      "time.Time",
-	"date":          "time.Time",
-	"time":          "time.Time",
+	"datetime":      "soap.XSDDateTime",
+	"date":          "soap.XSDDate",
+	"time":          "soap.XSDTime",
 	"base64binary":  "[]byte",
 	"hexbinary":     "[]byte",
 	"unsignedint":   "uint32",
 	"unsignedshort": "uint16",
 	"unsignedbyte":  "byte",
 	"unsignedlong":  "uint64",
-	"anytype":       "interface{}",
+	"anytype":       "AnyType",
+	"ncname":        "NCName",
+	"anyuri":        "AnyURI",
 }
 
 func removeNS(xsdType string) string {
@@ -408,7 +455,7 @@ func removeNS(xsdType string) string {
 	return r[0]
 }
 
-func toGoType(xsdType string) string {
+func toGoType(xsdType string, nillable bool) string {
 	// Handles name space, ie. xsd:string, xs:string
 	r := strings.Split(xsdType, ":")
 
@@ -421,6 +468,9 @@ func toGoType(xsdType string) string {
 	value := xsd2GoTypes[strings.ToLower(t)]
 
 	if value != "" {
+		if nillable {
+			value = "*" + value
+		}
 		return value
 	}
 
@@ -560,7 +610,7 @@ var basicTypes = map[string]string{
 }
 
 func isBasicType(identifier string) bool {
-	if _, exsits := basicTypes[identifier]; exsits {
+	if _, exists := basicTypes[identifier]; exists {
 		return true
 	}
 	return false

@@ -471,7 +471,7 @@ func (s *Client) call(ctx context.Context, soapAction string, request, response 
 		req.Header.Add("Content-Type", "text/xml; charset=\"utf-8\"")
 	}
 
-	if soapAction != "" {
+	if soapAction != "" && soapAction != "''" {
 		req.Header.Add("SOAPAction", soapAction)
 	}
 	req.Header.Set("User-Agent", "gowsdl/0.1")

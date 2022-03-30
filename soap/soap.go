@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"net"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/queroquitar/integrator_utils/pkg/qqlogger"
@@ -446,6 +447,11 @@ func (s *Client) call(ctx context.Context, soapAction string, request, response 
 	if err := encoder.Flush(); err != nil {
 		return err
 	}
+
+	body := buffer.String()
+	body = strings.ReplaceAll(body, `xmlns="empty_xmlns"`, `xmlns=""`)
+	buffer = new(bytes.Buffer)
+	buffer.WriteString(body)
 
 	req, err := http.NewRequest("POST", s.url, buffer)
 	if err != nil {
